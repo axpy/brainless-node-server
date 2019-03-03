@@ -16,6 +16,12 @@ function createDb(dbPath) {
     post(prop, value, refresh = true) {
       db[prop].push(value);
       refresh && this.refresh();
+    },
+    find(prop, valueProp, value) {
+      return db[prop].find(i => i[valueProp] == value);
+    },
+    doesExist(prop, valueProp, value) {
+      return !!db[prop].find(i => i[valueProp] == value);
     }
   }
 }
