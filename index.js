@@ -6,7 +6,7 @@ const bodyParser = require('body-parser');
 app.use(bodyParser.json());
 
 const { hash, check } = require('./crypt');
-
+const { sign, verify } = require('./jwt');
 
 app.post('/auth/signin', (req, res) => {
   const { email, password } = req.body;
@@ -21,8 +21,13 @@ app.post('/auth/signin', (req, res) => {
       console.error(err);
       return sendError(res, 401, 'Wrong credentials');
     } else {
-      const jwt = 'MEOW';
-      return res.send({jwt, message: 'Success!'});    
+      sign(email + user.password, (err, token) => {
+        if (err) {
+          return sendError(res);
+        } else {
+          return res.send({token, message: 'Success!'});    
+        }
+      })
     }
   })
 })
@@ -43,6 +48,16 @@ app.post('/auth/signup', (req, res) => {
       user.id = db.generateId();
       db.post('users', user);
       return res.send(user);    
+    }
+  })
+})
+
+app.get('/protected', (req, res) => {
+  verify(req.headers.authorization, (err, isValid) => {
+    if (err || !isValid) {
+      return sendError(res, 401, 'Not authorized!')
+    } else {
+      return res.send({yo: 'Yo!'});
     }
   })
 })
