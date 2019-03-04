@@ -5,8 +5,25 @@ const db = require('./db.js')(`${__dirname}/db.json`);
 const bodyParser = require('body-parser');
 app.use(bodyParser.json());
 
+const { sendError } = require('./helpers');
 const { hash, check } = require('./crypt');
 const { sign, verify } = require('./jwt');
+
+const protectedRoutes = ['/orders', '/protected'];
+
+app.use((req, res, next) => {
+  if (protectedRoutes.includes(req.path)) {
+    verify(req.headers.authorization, (err, isValid) => {
+      if (err || !isValid) {
+        return sendError(res, 401, 'Not authorized!')
+      } else {
+        return next();
+      }
+    }) 
+  } else {
+    return next();
+  }
+})
 
 app.post('/auth/signin', (req, res) => {
   const { email, password } = req.body;
@@ -62,16 +79,8 @@ app.get('/protected', (req, res) => {
   })
 })
 
-app.get('/users', (req, res) => res.send(db.get('users')));
-app.post('/users', (req, res) => {
-  const user = {id: db.generateId(), ...req.body};
-  db.post('users', user);
-  res.send(user);
+app.get('/orders', (req, res) => {
+  res.send(db.get('orders'));
 })
 
 app.listen(port, () => console.log(`Example app listening on port ${port}!`))
-
-function sendError(res, status = 400, message = 'Something went wrong!') {
-  res.status(status);
-  res.send({message});
-}
